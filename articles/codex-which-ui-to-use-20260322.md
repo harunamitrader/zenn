@@ -1,5 +1,5 @@
 ---
-title: "Codex どのUIで使う？CLI・デスクトップアプリ・Web・IDEの違いを非エンジニア向けに整理"
+title: "Codex どのUIで使う？CLI・デスクトップアプリ・Web・IDEの違い"
 emoji: "🖥️"
 type: "tech"
 topics: ["codex", "openai", "ai", "zenn"]

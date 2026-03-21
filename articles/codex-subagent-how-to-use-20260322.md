@@ -1,5 +1,5 @@
 ---
-title: "Codexのsubagentってどうやって使うの？非エンジニア向けにやさしく解説"
+title: "Codexのsubagentってどうやって使うの？"
 emoji: "🤖"
 type: "tech"
 topics: ["codex", "openai", "ai", "zenn"]

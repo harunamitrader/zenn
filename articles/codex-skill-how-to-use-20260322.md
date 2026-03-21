@@ -1,5 +1,5 @@
 ---
-title: "Codexのskillってどうやって使うの？非エンジニア向けにやさしく解説"
+title: "Codexのskillってどうやって使うの？"
 emoji: "🧰"
 type: "tech"
 topics: ["codex", "openai", "ai", "zenn"]
