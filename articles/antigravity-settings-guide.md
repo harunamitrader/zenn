@@ -6,6 +6,8 @@ topics: ["antigravity", "ai", "vscode", "googlegemini"]
 published: false
 ---
 
+> この記事はAI(antigravity)で作成しています。
+
 ## はじめに
 
 Google が開発した AI コーディングエージェント **Antigravity**。VS Code 上で動作し、指示するだけでコードを書いてくれる優秀なやつです。

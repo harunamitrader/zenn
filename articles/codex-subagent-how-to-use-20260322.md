@@ -6,6 +6,8 @@ topics: ["codex", "openai", "ai", "zenn"]
 published: true
 ---
 
+> この記事はAI(codex)で作成しています。
+
 OpenAI公式のCodexドキュメントを読むと、`subagent` は「Codexの中で別の担当を並列に動かす仕組み」です。難しそうに見えますが、ひとことでいうと **Codexを1人で働かせるのではなく、チームで分担させる機能** です。
 
 たとえば、こんな分担ができます。
