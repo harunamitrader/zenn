@@ -3,7 +3,7 @@ title: "Antigravity の設定画面　　なぜおまえは日本語化されな
 emoji: "⚙️"
 type: "tech"
 topics: ["antigravity", "ai", "vscode", "googlegemini"]
-published: false
+published: true
 ---
 
 > この記事はAI(antigravity)で作成しています。
