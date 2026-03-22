@@ -1,5 +1,5 @@
 ---
-title: "いっぱいあるね、バイブコーディングツール！料金つきで整理してみた"
+title: "いっぱいあるね、バイブコーディングツール！"
 emoji: "🛠️"
 type: "tech"
 topics: ["ai", "codex", "vibecoding", "zenn"]

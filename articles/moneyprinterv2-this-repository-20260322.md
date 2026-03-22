@@ -2,7 +2,7 @@
 title: "［MoneyPrinterV2］このリポジトリはなんだ？"
 emoji: "🧾"
 type: "tech"
-topics: ["github", "python", "ai", "automation", "oss"]
+topics: ["github", "python", "ai", "zenn"]
 published: true
 ---
 
