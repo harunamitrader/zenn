@@ -6,40 +6,73 @@ topics: ["codex", "discord", "tauri", "automation"]
 published: false
 ---
 
-Codex CLI を使っていると、「別の部屋から進捗を見たい」「Discord から指示を投げたい」「ローカルでも同じセッションを触りたい」と思うことがありました。
+Codex CLI を使っていると、
 
-そこで作ったのが、**Codicodi（Codex Discord Connected Display）** です。これは、ローカル UI と Discord の両方から同じ Codex セッションを操作できる Windows 向けブリッジアプリです。Node.js で bridge サーバーを動かし、Tauri でデスクトップアプリ化しています。
+- 別の部屋から進捗を見たい
+- Discord から指示を投げたい
+- でもローカル UI でも同じ会話を触りたい
 
-リポジトリはこちらです。
+と思うことがありました。
+
+そこで作ったのが、**Codicodi（Codex Discord Connected Display）** です。  
+これは、**1つの Codex CLI セッションをローカル UI と Discord の両方から共有して使うための Windows 向けローカルアプリ** です。
+
+リポジトリはこちらです。  
 [GitHub リポジトリはこちら](https://github.com/harunamitrader/codicodi)
 
-単なる Discord Bot ではなく、**ローカル UI と Discord を 1 つのセッションで同期させるラッパー** というのがポイントです。片方で送ったメッセージはもう片方にも届くし、進捗もリアルタイムで共有されます。この記事では、何ができるかと、実際の導入手順をまとめます。
+単なる Discord Bot ではなく、**セッション管理、添付、進捗表示、停止、スケジュール実行まで含めて、ローカル UI と Discord をつなぐブリッジ** になっているのがポイントです。この記事では、今の `codicodi` で何ができるのか、導入前に何を理解しておくべきか、どう入れるのが楽かをまとめます。
 
 ![Codicodi のヘッダー画像](/images/codicodi/header.jpg)
 
-## Codicodi でできること
+## 良いところ
 
-まず、できることをざっくり整理すると次の通りです。
+`codicodi` の価値は、単に Discord から Codex を叩けることだけではありません。
 
-- ローカル UI と Discord の両方からテキスト・画像・ファイルを送信できる
-- セッションの作成・切替・名前変更・削除ができる
-- model / reasoning level / fast mode を切り替えられる
+実際には次の4つがセットになっています。
+
+1. ローカル UI と Discord で同じセッションを共有できる
+2. セッションごとに model / reasoning / fast mode / working directory を切り替えられる
+3. 進捗、停止、エラーが Discord 側でも追いやすい
+4. cron スケジュールで既存セッションや新規セッションへ定期送信できる
+
+つまり、**「普段は PC で触るけど、別の部屋や外出先からも同じ作業を追いたい」** という用途にかなり相性がいいです。
+
+## 何ができるのか
+
+できることをざっくり整理すると、次の通りです。
+
+- ローカル UI と Discord の両方からテキストを送信できる
+- ローカル UI と Discord の両方から画像とファイルを送信できる
+- セッションの新規作成、切り替え、名前変更、削除ができる
+- セッションごとに model / reasoning level / fast mode を切り替えられる
+- セッションごとに working directory を切り替えられる
+- `Restore Chat` で会話再取得や stale session 復旧ができる
+- cron スケジュールで、既存セッションまたは新規セッション作成へ定期送信できる
 - 実行中の Codex を途中で止められる
-- 進捗や途中メッセージがローカルと Discord の両方に表示される
-- 指定フォルダのファイル変更を検知して Discord に通知できる
-- Tauri デスクトップアプリとしてネイティブに動く
+- 指定フォルダの変更を Discord に通知できる
+- Tauri デスクトップアプリとして使える
 
-普段の使い方はシンプルで、**ローカル UI か Discord のどちらかからメッセージを送るだけ** です。セッション管理やパラメータ変更は、必要なときに Discord のスラッシュコマンドか UI のボタンで操作します。
+特に今の `codicodi` で便利なのは、**ただ会話を中継するだけでなく、セッション単位の運用に必要なものがだいたい揃っている**ことです。
+
+たとえば、
+
+- 作業Aは `C:\Users\...\repo-a`
+- 作業Bは `C:\Users\...\repo-b`
+
+のように、セッションごとに作業フォルダを分けたまま使えます。  
+さらに、定期実行したい処理は `Schedules` 画面から cron で回せます。
 
 ![ローカル UI でセッションを操作している画面](/images/codicodi/local-ui.png)
-*ローカル UI — セッション一覧、モデル選択、チャット入力が1画面に*
+*ローカル UI では、セッション一覧、パラメータ切替、チャット入力をまとめて扱えます。*
 
 ![Discord からメッセージを送っている画面](/images/codicodi/discord-chat.png)
-*Discord から画像を送信し、Codex が応答している様子*
+*Discord から送ったメッセージも同じセッションに入り、進捗や応答を追えます。*
 
-## 主な /codex コマンド
+## Discord 側で何が見えるのか
 
-Discord 側の操作はスラッシュコマンドで行います。
+`codicodi` は Discord 側の見え方もかなり重要です。
+
+主な操作は slash command で行います。
 
 - `/codex help` : 使えるコマンド一覧を表示
 - `/codex session` : セッション一覧を表示
@@ -52,63 +85,122 @@ Discord 側の操作はスラッシュコマンドで行います。
 - `/codex rename name:新しい名前` : セッション名を変更
 
 ![/codex help の実行結果](/images/codicodi/discord-help.png)
-*/codex help — 使えるコマンド一覧*
+*/codex help で、今使える操作を Discord 側から確認できます。*
+
+![/codex status の実行結果](/images/codicodi/discord-status.png)
+*/codex status で、接続先や現在の状態を確認できます。*
+
+進捗表示まわりも、最近かなり使いやすくなりました。
+
+以前は長い `Working` が残って、見かけ上ずっと動いているように見えることがありましたが、今は **前の進捗メッセージを消して、新しい `Working` / `Completed` / `Stopped` / `Error` を一番下へ出す** 挙動にしています。
+
+そのため、
+
+- いま動いているのか
+- もう止まったのか
+- エラーで終わったのか
+
+が Discord 上でもかなり分かりやすくなっています。`/codex stop` も、実行中のターンだけでなく未処理キューまで止めて結果を通知します。
+
+## ローカル UI のどこが便利か
+
+Discord 連携が目立ちますが、実際にはローカル UI 側もかなり重要です。
+
+ローカル UI では主に次の操作ができます。
+
+- `New Session` で新規セッション作成
+- セッションカードのクリックで名前変更
+- Discord チャンネルとの紐付け
+- model / reasoning / fast mode の切り替え
+- `Select Folder` でセッションごとの working directory 切り替え
+- メッセージ送信
+- ファイル追加
+- drag & drop / paste 添付
+- `Restore Chat`
+- `Open Developer Console`
+- `Schedules` 画面で cron スケジュールの追加 / 編集 / 停止 / 削除
+
+特に `Schedules` は、**定期実行をそのまま `codicodi` の中で扱える**のが良いところです。
+
+送信先も、
+
+- 既存セッションに送る
+- 実行のたびに新規セッションを作る
+
+のどちらかを選べます。  
+「毎朝この repo を確認する」「毎日この skill を流す」みたいな処理を、別ツールに逃がさずこのアプリ内で回せます。
 
 ## どんな人に向いているか
 
-この Bot は、次のような人に向いています。
+このアプリは、次のような人に向いています。
 
 - Codex CLI を日常的に使っている
-- 別部屋や外出先から進捗を確認したい
-- ローカルと Discord を行き来しながら作業したい
-- セッションを閉じても復旧できる環境がほしい
+- ローカル UI と Discord を行き来しながら同じ作業を続けたい
+- 作業ごとに working directory を切り替えたい
+- 別部屋や外出先から進捗を見たい
+- 定期タスクも同じ操作系の中で回したい
 
-逆に、**公開サーバーでの運用や多人数共有には向きません。** ローカル PC 上の Codex CLI を Discord 経由で操作できる性質上、セキュリティの管理は自分で行う必要があります。
+逆に、**不特定多数が使う共有サービス向けではありません。**
+
+これはローカル PC 上の Codex CLI を Discord 経由で触れるようにするツールなので、安全管理はかなり重要です。便利さより先に、その前提を理解しておいたほうがいいです。
 
 ## 導入前に必ず理解しておきたいこと
 
 これは先に書いておきます。
 
-Codicodi は、仕組み上 **Discord から PC 上の Codex CLI を操作するツール** です。入力した文章やファイルは Codex に渡され、会話内容は Discord に送信されます。
+`codicodi` は、仕組み上 **Discord から PC 上の Codex CLI を操作できるツール** です。  
+入力した文章やファイルは Codex に渡され、会話内容は Discord に送られます。
 
-特に注意が必要な設定があります。
+特に注意が必要なのは次です。
 
-- `CODEX_BYPASS_APPROVALS_AND_SANDBOX=true` にすると、Codex が承認なしでコマンドを実行します
-- `CODEX_ENABLE_SEARCH=true` にすると、外部ネットワークアクセスが有効になります
-- ファイル監視を有効にすると、変更されたファイルが自動で Discord に飛びます
+- `CODEX_BYPASS_APPROVALS_AND_SANDBOX=true` にすると、承認なし・sandbox 制限なしで Codex を実行できる
+- `CODEX_ENABLE_SEARCH=true` にすると、外部ネットワークアクセスを許可する
+- ファイル監視を有効にすると、変更されたファイルが Discord に自動投稿される
+- `data/bridge.sqlite` や `data/uploads/` には会話や添付が保存される
 
-最低限、次のルールは守ってください。
+最低限、次のルールは守ったほうがいいです。
 
 - `.env` の Bot トークンは絶対に公開しない
-- `DISCORD_ALLOWED_GUILD_IDS` は自分のサーバー 1 つに限定する
-- 公開サーバーでは使わない
-- `data/bridge.sqlite` や `data/uploads/` には会話や添付が保存されることを把握しておく
+- `DISCORD_ALLOWED_GUILD_IDS` は自分が管理するサーバー 1 つに限定する
+- 共有サーバーや公開サーバーでは使わない
 - bridge のポートを外部に公開しない
+- 機密データが多いフォルダを安易に監視しない
 
-便利ですが、安全な一般向けツールではありません。**完全に自己責任で、安全を優先して使う前提** が必要です。
+便利ですが、安全な一般向けアプリではありません。**完全に自己責任で、安全寄りに運用する前提** が必要です。
 
 ## 導入に必要なもの
 
-導入前に必要なのは次の 4 つです。
+導入前に必要なのは次の4つです。
 
 - Windows PC
 - Node.js 22 LTS 以上
-- Codex CLI（`codex --help` が通ること）
-- Discord Bot（Message Content Intent 有効化必須）
+- Codex CLI
+- Discord Bot
+
+加えて、`.env` の用意と Discord Bot の設定が必要です。
 
 ## 導入手順
 
-Antigravity Discord Bot のときと同じで、いちばん楽なのは **Codex 自身に導入作業を手伝わせる方法** です。
+README にも書いていますが、いちばん楽なのは **Codex 自身に導入を手伝わせる方法** です。
 
 ### 方法 1. Codex に導入を手伝わせる
 
 Codex に次のように投げるだけです。
 
 ```text
-https://github.com/harunamitrader/codicodi を導入して。可能な範囲でAI側で作業を行い、必要な情報があれば質問して。手動で行う必要があるものは丁寧にやり方を教えて。
+https://github.com/harunamitrader/codicodi を導入して。可能な範囲でAI側で作業を行い、必要な情報があれば質問して。手動で行う必要があるものは丁寧にやり方を教えて。Tauri デスクトップアプリとして起動できるようにデスクトップにショートカットを作成して
 ```
 
-リポジトリ取得、依存関係の導入、`.env` の用意あたりは Codex にかなり任せられます。ただし、Discord Bot の作成やトークン取得は人間側での作業が必要です。
+このやり方の良いところは、
+
+- リポジトリ取得
+- 依存関係の導入
+- `.env` の下準備
+- 起動補助スクリプトの利用
+
+あたりをかなり AI に寄せられることです。
+
+もちろん、Discord Bot の作成やトークン取得は人間側の作業が必要ですが、そこ以外はかなり進めやすいです。
 
 ### 方法 2. 手動でセットアップする
 
@@ -132,15 +224,17 @@ npm install
 cp .env.example .env
 ```
 
-少なくとも次の 3 つを埋めます。
+少なくとも次の項目を埋めます。
 
-- `DISCORD_BOT_TOKEN` : Bot のトークン
-- `DISCORD_ALLOWED_GUILD_IDS` : 自分の Discord サーバー ID（1 つだけ）
-- `CODEX_WORKDIR` : Codex の作業ディレクトリ
+- `DISCORD_BOT_TOKEN`
+- `DISCORD_ALLOWED_GUILD_IDS`
+- `CODEX_WORKDIR`
+
+`CODEX_WORKDIR` は、標準の作業フォルダです。UI から選ぶ working directory や、スケジュール実行時の既定フォルダもこの配下で使う前提です。
 
 ### 4. 起動する
 
-**Tauri デスクトップアプリ（推奨）:**
+**Tauri デスクトップアプリ（推奨）**
 
 ```bash
 .\launch-tauri-dev.ps1
@@ -148,12 +242,13 @@ cp .env.example .env
 npm run tauri:dev
 ```
 
-**ブラウザで使う場合:**
+**ブラウザで使う場合**
 
 ```bash
 npm start
-# http://127.0.0.1:3087 にアクセス
 ```
+
+その後、`http://127.0.0.1:3087` を開きます。
 
 ## 使い始めたら最初に試したいこと
 
@@ -161,18 +256,34 @@ npm start
 
 1. ローカル UI で `New Session` を作り、テキスト送信が通るか確認する
 2. Discord で `/codex status` を実行し、同じセッションに紐付いているか見る
-3. 画像やファイルを添付して Codex まで届くか確認する
-4. `/codex fast on` や `/codex reasoning` でパラメータ変更が反映されるか試す
+3. `Select Folder` で working directory を切り替えて、そのフォルダで応答が返るか試す
+4. 画像やファイルを添付して Codex まで届くか確認する
+5. `/codex stop` を試して、Discord 側で `Stopped` が最下部に出るか確認する
+6. `Schedules` 画面でテスト用の cron を1本作る
 
-最初はシンプルに、メッセージ送信と状態確認から始めるのがおすすめです。
+最初はシンプルに、
 
-![/codex status の実行結果](/images/codicodi/discord-status.png)
-*/codex status — セッションの接続状態を確認*
+- メッセージ送信
+- 状態確認
+- 停止
+- working directory 切り替え
+
+あたりから試すのがおすすめです。
 
 ## まとめ
 
-Codicodi は、ローカル UI と Discord を 1 つの Codex セッションでつなぐためのブリッジアプリです。
+Codicodi は、ローカル UI と Discord を 1つの Codex セッションでつなぐためのブリッジアプリです。
 
-便利さの中心は、単なる Discord Bot ではなく、**セッション管理、ファイル送信、パラメータ切替、進捗共有をローカルと Discord の両方から行える** ところにあります。
+便利さの中心は、単なる Discord Bot ではなく、
 
-その一方で、PC 上の Codex CLI を外部から操作する性質上、安全管理は自分でやる必要があります。まずは小さく、安全に、確認しながら使ってみてください。
+- セッション共有
+- 添付ファイル送信
+- model / reasoning / fast mode 切り替え
+- セッションごとの working directory
+- `Restore Chat`
+- スケジュール実行
+- 分かりやすい進捗 / 停止 / エラー表示
+
+まで、**Codex を日常運用するための部品をまとめている**ところにあります。
+
+その一方で、PC 上の Codex CLI を Discord 経由で触れる性質上、安全管理は自分でやる必要があります。まずは小さく、安全に、確認しながら使ってみてください。
