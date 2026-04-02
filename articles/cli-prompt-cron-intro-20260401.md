@@ -80,6 +80,8 @@ cli-prompt-cron の skills/SKILL.md を読んで、毎分「AIに関するトリ
 - 実行中ジョブ
 - ライブログ
 - 実行結果
+- ジョブの inline 編集
+- 共通の `Default CWD` 設定
 
 CLI ツール系って、便利でも「状態が見えにくい」ことが多いので、ここがあるだけでかなり安心感があります。
 
@@ -168,6 +170,7 @@ cli-prompt-cron の skills/SKILL.md を読んで、毎朝9時にGeminiに「GitH
 
 ```json
 {
+  "logId": "0001",
   "targetCli": "gemini",
   "permissionProfile": "safe",
   "prompt": "今日のニュースをまとめて",
@@ -183,14 +186,18 @@ cli-prompt-cron の skills/SKILL.md を読んで、毎朝9時にGeminiに「GitH
 
 JSON に実行コマンドを直書きせず、
 
+- `logId`
 - `targetCli`
 - `permissionProfile`
 - `prompt`
 
-などの情報をを持たせます。
+などの情報を持たせます。
 
 実際のコマンドは `cli-prompt-cron` 側が実行時に組み立てます。  
 このおかげで、**AI にジョブ作成を頼むときも、複雑な CLI オプションを毎回説明しなくて済む**ようになっています。
+
+特に今の schema では、`logId` は `0000`〜`9999` の4桁数字で必須です。  
+一方で `targetCli` と `permissionProfile` は省略時に既定値が入るので、AI に依頼するときはこの差を意識しておくとズレにくいです。
 
 ## どういう人に向いているか
 
