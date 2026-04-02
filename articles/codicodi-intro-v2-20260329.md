@@ -1,5 +1,5 @@
 ---
-title: "Codicodiってなんだ？"
+title: "codexがdiscordで使える。　codicodiってなんだ？"
 emoji: "🖥️"
 type: "tech"
 topics: ["codex", "discord", "tauri", "automation"]
